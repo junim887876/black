@@ -2,14 +2,17 @@
 <html lang="pt-BR" class="dark">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Viewport estrito para mobile nativo, sem zoom e respeitando safe-area / island -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Barbearia Junim • Fatura Digital</title>
 
-    <!-- PWA Web App Manifest & Theme Color -->
+    <!-- PWA Web App Manifest & Configurações de Standalone iOS/Android -->
     <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#050608">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Junim Fatura">
     <link rel="icon" type="image/png" href="./icon.png">
     <link rel="apple-touch-icon" href="./icon.png">
 
@@ -47,15 +50,28 @@
     </script>
 
     <style>
+        /* Desabilita duplos toques de zoom e seleção de texto para sensation nativa */
+        * {
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+        }
+
         body {
             background-color: #050608;
             color: #E2E8F0;
             font-family: 'Inter', sans-serif;
             overflow-x: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+            /* Suporte a Notch e Dynamic Island do iPhone */
+            padding-top: env(safe-area-inset-top, 0px);
+            padding-bottom: env(safe-area-inset-bottom, 0px);
+            padding-left: env(safe-area-inset-left, 0px);
+            padding-right: env(safe-area-inset-right, 0px);
         }
 
         .glass-panel {
-            background: rgba(18, 20, 29, 0.7);
+            background: rgba(18, 20, 29, 0.75);
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
             border: 1px solid rgba(255, 255, 255, 0.08);
@@ -64,7 +80,7 @@
         .black-card-bg {
             background: radial-gradient(circle at 20% 20%, #2a2d3d 0%, #0d0f17 50%, #050609 100%);
             position: relative;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 35px rgba(0, 242, 254, 0.1);
+            box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.8), 0 0 25px rgba(0, 242, 254, 0.1);
         }
 
         .black-card-bg::before {
@@ -87,89 +103,85 @@
 
         .glow-ambient-cyan {
             position: absolute;
-            width: 350px;
-            height: 350px;
+            width: 300px;
+            height: 300px;
             background: radial-gradient(circle, rgba(0, 242, 254, 0.12) 0%, rgba(0,0,0,0) 70%);
-            filter: blur(60px);
+            filter: blur(50px);
             pointer-events: none;
         }
 
         .glow-ambient-purple {
             position: absolute;
-            width: 400px;
-            height: 400px;
+            width: 300px;
+            height: 300px;
             background: radial-gradient(circle, rgba(121, 40, 202, 0.12) 0%, rgba(0,0,0,0) 70%);
-            filter: blur(70px);
+            filter: blur(60px);
             pointer-events: none;
         }
 
         .animate-fade-in {
-            animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
 
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(8px); }
+            from { opacity: 0; transform: translateY(6px); }
             to { opacity: 1; transform: translateY(0); }
         }
 
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: #08090c; }
-        ::-webkit-scrollbar-thumb { background: #1f2430; border-radius: 999px; }
-        ::-webkit-scrollbar-thumb:hover { background: #333b4e; }
+        ::-webkit-scrollbar { width: 0px; height: 0px; } /* Oculta scrollbar no celular */
     </style>
 </head>
-<body class="min-h-screen antialiased selection:bg-cyan-500 selection:text-black relative">
+<body class="min-h-screen antialiased selection:bg-cyan-500 selection:text-black relative flex flex-col justify-between">
 
-    <div class="glow-ambient-cyan top-10 -left-20"></div>
-    <div class="glow-ambient-purple top-96 -right-20"></div>
+    <div class="glow-ambient-cyan top-0 -left-20"></div>
+    <div class="glow-ambient-purple bottom-10 -right-20"></div>
 
     <!-- Toast Notification Container -->
-    <div id="toastContainer" class="fixed top-5 left-1/2 -translate-x-1/2 z-50 pointer-events-none transition-all duration-300 opacity-0 transform -translate-y-4">
-        <div id="toastBox" class="bg-cyan-500/10 border border-cyan-400/40 backdrop-blur-xl text-cyan-200 px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3">
-            <i id="toastIcon" data-lucide="check-circle-2" class="w-5 h-5 text-cyan-400"></i>
-            <span id="toastText" class="text-xs sm:text-sm font-semibold tracking-wide">Mensagem</span>
+    <div id="toastContainer" class="fixed top-8 left-1/2 -translate-x-1/2 z-50 pointer-events-none transition-all duration-300 opacity-0 transform -translate-y-4 w-11/12 max-w-sm">
+        <div id="toastBox" class="bg-cyan-500/10 border border-cyan-400/40 backdrop-blur-xl text-cyan-200 px-4 py-3 rounded-2xl shadow-2xl flex items-center justify-center gap-3">
+            <i id="toastIcon" data-lucide="check-circle-2" class="w-5 h-5 text-cyan-400 shrink-0"></i>
+            <span id="toastText" class="text-xs font-semibold tracking-wide text-center">Mensagem</span>
         </div>
     </div>
 
     <!-- MAIN APP WRAPPER -->
-    <div class="max-w-5xl mx-auto px-3 sm:px-6 lg:px-8 pt-4 pb-16 min-h-screen flex flex-col">
+    <div class="w-full max-w-md mx-auto px-4 pt-3 pb-8 flex-1 flex flex-col justify-between">
 
         <!-- HEADER / BRANDING BAR -->
-        <header class="flex items-center justify-between gap-4 py-4 mb-6 border-b border-white/10">
-            <div class="flex items-center gap-3 cursor-pointer" onclick="showLoginScreen()">
+        <header class="flex items-center justify-between gap-3 py-3 mb-4 border-b border-white/10">
+            <div class="flex items-center gap-3" onclick="showLoginScreen()">
                 <!-- LOGOTIPO DA BARBEARIA JUNIM -->
-                <div class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-amber-500 via-cyan-400 to-indigo-600 p-[1.5px] flex items-center justify-center shadow-lg shadow-cyan-500/10 overflow-hidden">
+                <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 via-cyan-400 to-indigo-600 p-[1.5px] flex items-center justify-center shadow-lg shadow-cyan-500/10 overflow-hidden shrink-0">
                     <div class="w-full h-full bg-black rounded-[14px] flex items-center justify-center overflow-hidden">
                         <img 
                             src="./icon.png" 
                             alt="Barbearia Junim Logo" 
                             class="w-full h-full object-cover rounded-[14px]"
-                            onerror="this.onerror=null; this.parentElement.innerHTML='<i data-lucide=\'scissors\' class=\'w-5 h-5 text-cyan-400 transform -rotate-45\'></i>';"
+                            onerror="this.onerror=null; this.parentElement.innerHTML='<i data-lucide=\'scissors\' class=\'w-4 h-4 text-cyan-400 transform -rotate-45\'></i>';"
                         />
                     </div>
                 </div>
                 <div>
-                    <div class="flex items-center gap-2">
-                        <h1 class="font-display font-bold text-lg sm:text-xl tracking-wider uppercase text-white">Barbearia Junim</h1>
-                        <span class="bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-[10px] font-mono px-2 py-0.5 rounded-full font-bold uppercase tracking-widest">Digital Bank</span>
+                    <div class="flex items-center gap-1.5">
+                        <h1 class="font-display font-bold text-base tracking-wider uppercase text-white">Barbearia Junim</h1>
+                        <span class="bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-[9px] font-mono px-1.5 py-0.5 rounded-full font-bold uppercase tracking-widest">Bank</span>
                     </div>
-                    <p class="text-xs text-slate-400">Gestão de Crédito Executivo</p>
+                    <p class="text-[10px] text-slate-400">Gestão de Crédito Executivo</p>
                 </div>
             </div>
 
-            <!-- Header User Badge -->
-            <div id="userHeaderBadge" class="hidden items-center gap-2 bg-black/60 border border-white/10 rounded-xl px-3 py-1.5 text-xs">
-                <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
-                <span id="headerClientName" class="font-semibold text-white">Cliente</span>
-                <button onclick="logoutClient()" class="text-slate-400 hover:text-rose-400 ml-1">
-                    <i data-lucide="log-out" class="w-3.5 h-3.5"></i>
+            <!-- Botão Fixo e Fácil de Sair (Logout) -->
+            <div id="userHeaderBadge" class="hidden items-center gap-2">
+                <button onclick="logoutClient()" class="bg-rose-500/10 border border-rose-500/30 active:scale-95 text-rose-300 text-xs px-3 py-1.5 rounded-xl flex items-center gap-1.5 transition-all font-semibold">
+                    <i data-lucide="log-out" class="w-3.5 h-3.5 text-rose-400"></i>
+                    <span>Sair</span>
                 </button>
             </div>
         </header>
 
         <!-- SCREEN 1: LOGIN SCREEN -->
-        <div id="loginScreen" class="flex-1 flex flex-col items-center justify-center py-8 animate-fade-in">
-            <div class="w-full max-w-md glass-panel rounded-3xl p-6 sm:p-8 space-y-6 border border-white/15 shadow-2xl relative">
+        <div id="loginScreen" class="flex-1 flex flex-col justify-center py-4 animate-fade-in">
+            <div class="w-full glass-panel rounded-3xl p-6 space-y-6 border border-white/15 shadow-2xl relative">
                 
                 <div class="text-center space-y-3">
                     <div class="w-20 h-20 rounded-3xl bg-cyan-500/10 border border-cyan-400/30 flex items-center justify-center text-cyan-400 mx-auto shadow-xl shadow-cyan-500/10 overflow-hidden p-1">
@@ -180,7 +192,7 @@
                             onerror="this.onerror=null; this.parentElement.innerHTML='<i data-lucide=\'credit-card\' class=\'w-8 h-8\'></i>';"
                         />
                     </div>
-                    <h2 class="text-xl sm:text-2xl font-bold text-white tracking-wide">Acessar Fatura Digital</h2>
+                    <h2 class="text-xl font-bold text-white tracking-wide">Acessar Fatura Digital</h2>
                     <p class="text-xs text-slate-400">Digite seu nome para consultar suas despesas.</p>
                 </div>
 
@@ -197,14 +209,14 @@
                                 placeholder="Digite seu nome..." 
                                 required
                                 autocomplete="off"
-                                class="w-full bg-black/70 border border-white/15 focus:border-cyan-400 text-white font-medium text-sm rounded-2xl pl-11 pr-4 py-3.5 outline-none transition-all placeholder:text-slate-600"
+                                class="w-full bg-black/80 border border-white/15 focus:border-cyan-400 text-white font-medium text-sm rounded-2xl pl-11 pr-4 py-3.5 outline-none transition-all placeholder:text-slate-600 select-text"
                             />
                         </div>
                     </div>
 
                     <button 
                         type="submit" 
-                        class="w-full py-4 rounded-2xl bg-gradient-to-r from-cyan-400 via-cyan-500 to-blue-600 hover:from-cyan-300 hover:to-blue-500 text-black font-extrabold text-sm tracking-wide shadow-xl shadow-cyan-500/20 transition-all flex items-center justify-center gap-2 hover:scale-[1.01]"
+                        class="w-full py-4 rounded-2xl bg-gradient-to-r from-cyan-400 via-cyan-500 to-blue-600 active:scale-95 text-black font-extrabold text-sm tracking-wide shadow-xl shadow-cyan-500/20 transition-all flex items-center justify-center gap-2"
                     >
                         <span>Login</span>
                         <i data-lucide="arrow-right" class="w-4 h-4"></i>
@@ -215,14 +227,14 @@
         </div>
 
         <!-- SCREEN 2: DASHBOARD -->
-        <div id="dashboardScreen" class="hidden space-y-8 animate-fade-in flex-1">
+        <div id="dashboardScreen" class="hidden space-y-5 animate-fade-in flex-1">
 
             <!-- Navigation Tabs -->
-            <div class="flex items-center justify-between bg-black/40 border border-white/10 rounded-2xl p-1 backdrop-blur-xl">
+            <div class="flex items-center justify-between bg-black/50 border border-white/10 rounded-2xl p-1 backdrop-blur-xl">
                 <button 
                     onclick="switchTab('fatura')"
                     id="tabBtn-fatura"
-                    class="flex-1 py-2.5 sm:py-3 px-3 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-300 flex items-center justify-center gap-2 bg-gradient-to-r from-cyan-500/20 to-blue-600/20 text-cyan-300 border border-cyan-500/30 shadow-lg shadow-cyan-500/10"
+                    class="flex-1 py-2.5 px-3 rounded-xl text-xs font-semibold transition-all duration-300 flex items-center justify-center gap-2 bg-gradient-to-r from-cyan-500/20 to-blue-600/20 text-cyan-300 border border-cyan-500/30 shadow-lg"
                 >
                     <i data-lucide="credit-card" class="w-4 h-4"></i>
                     Fatura & Limite
@@ -230,7 +242,7 @@
                 <button 
                     onclick="switchTab('beneficios')"
                     id="tabBtn-beneficios"
-                    class="flex-1 py-2.5 sm:py-3 px-3 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-300 flex items-center justify-center gap-2 text-slate-400 hover:text-white hover:bg-white/5"
+                    class="flex-1 py-2.5 px-3 rounded-xl text-xs font-semibold transition-all duration-300 flex items-center justify-center gap-2 text-slate-400 hover:text-white"
                 >
                     <i data-lucide="crown" class="w-4 h-4 text-amber-400"></i>
                     Clube Black
@@ -238,134 +250,131 @@
             </div>
 
             <!-- TAB CONTENT 1: FATURA & CARTÃO BLACK -->
-            <div id="tabContent-fatura" class="space-y-8">
+            <div id="tabContent-fatura" class="space-y-5">
                 
-                <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-                    
-                    <!-- Card Display -->
-                    <div class="lg:col-span-6 flex justify-center">
-                        <div class="w-full max-w-sm aspect-[1.586/1] black-card-bg rounded-3xl p-6 sm:p-7 flex flex-col justify-between text-white border border-white/20 transform transition-transform duration-500 hover:scale-[1.02] cursor-pointer group">
-                            
-                            <!-- Card Top -->
-                            <div class="flex justify-between items-start">
-                                <div>
-                                    <div class="flex items-center gap-1.5">
-                                        <span class="font-display font-extrabold text-lg tracking-widest text-white">JUNIM</span>
-                                        <span class="text-xs font-mono text-cyan-400 tracking-wider">BLACK</span>
-                                    </div>
-                                    <p class="text-[10px] text-slate-400 uppercase tracking-widest font-mono">Executive Credit</p>
-                                </div>
-                                <div class="w-11 h-8 rounded-lg bg-gradient-to-br from-amber-200 via-amber-400 to-amber-600 p-[1px] shadow-inner">
-                                    <div class="w-full h-full bg-amber-300/40 rounded-[7px] border border-amber-600/50 flex flex-col justify-around p-1">
-                                        <div class="w-full h-[1px] bg-amber-700/60"></div>
-                                        <div class="w-full h-[1px] bg-amber-700/60"></div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Card Middle -->
-                            <div class="flex justify-between items-center my-2">
-                                <i data-lucide="wifi" class="w-6 h-6 text-slate-400 transform rotate-90"></i>
-                                <span id="cardTierBadge" class="text-xs font-mono tracking-widest text-slate-400 bg-white/5 px-2.5 py-1 rounded-md border border-white/10">BLACK VIP</span>
-                            </div>
-
-                            <!-- Card Bottom -->
-                            <div class="space-y-3">
-                                <div id="cardNumberDisplay" class="font-mono text-sm sm:text-base tracking-[0.25em] text-slate-200">
-                                    4829 •••• •••• 9921
-                                </div>
-                                <div class="flex justify-between items-end">
-                                    <div>
-                                        <p class="text-[9px] text-slate-400 uppercase tracking-wider">Titular do Cartão</p>
-                                        <p id="cardNameDisplay" class="font-semibold text-xs sm:text-sm tracking-wide text-white uppercase">NOME DO CLIENTE</p>
-                                    </div>
-                                    <div class="text-right">
-                                        <p class="text-[9px] text-slate-400 uppercase tracking-wider">Status Fatura</p>
-                                        <p id="cardStatusDisplay" class="font-mono text-xs text-cyan-400">ATIVO</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Metrics Tiles -->
-                    <div class="lg:col-span-6 space-y-4">
+                <!-- Card Display -->
+                <div class="flex justify-center">
+                    <div class="w-full aspect-[1.586/1] black-card-bg rounded-3xl p-5 flex flex-col justify-between text-white border border-white/20 relative group">
                         
-                        <!-- Fatura Atual Tile -->
-                        <div class="glass-panel rounded-3xl p-6 border-l-4 border-l-cyan-400 relative overflow-hidden">
-                            <div class="flex justify-between items-start mb-2">
-                                <div>
-                                    <span class="text-xs font-semibold uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
-                                        <span class="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
-                                        Fatura Atual • Valor Total
-                                    </span>
-                                    <h2 id="totalOwedDisplay" class="text-3xl sm:text-4xl font-extrabold font-mono text-white mt-1">
-                                        R$ 0,00
-                                    </h2>
+                        <!-- Card Top -->
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <div class="flex items-center gap-1.5">
+                                    <span class="font-display font-extrabold text-base tracking-widest text-white">JUNIM</span>
+                                    <span class="text-xs font-mono text-cyan-400 tracking-wider">BLACK</span>
                                 </div>
-                                <span id="billStatusTag" class="text-xs px-3 py-1 rounded-full font-bold border bg-emerald-500/10 border-emerald-500/30 text-emerald-400">
-                                    Fatura Quitada
-                                </span>
+                                <p class="text-[9px] text-slate-400 uppercase tracking-widest font-mono">Executive Credit</p>
                             </div>
-
-                            <p class="text-xs text-slate-400 mb-6 flex items-center gap-2">
-                                <i data-lucide="calendar" class="w-4 h-4 text-cyan-400"></i>
-                                Vencimento: <strong id="dueDateDisplay" class="text-white font-medium">Dia 10 de cada mês</strong>
-                            </p>
-
-                            <button 
-                                id="payBillBtn"
-                                onclick="openPayModal()"
-                                class="w-full py-3.5 px-6 rounded-2xl font-bold text-sm tracking-wide transition-all duration-300 flex items-center justify-center gap-2 shadow-xl bg-gradient-to-r from-cyan-400 via-cyan-500 to-blue-600 hover:from-cyan-300 hover:to-blue-500 text-black shadow-cyan-500/20 hover:scale-[1.01]"
-                            >
-                                <i data-lucide="qr-code" class="w-4 h-4"></i>
-                                <span>Pagar Fatura com PIX</span>
-                            </button>
-                        </div>
-
-                        <!-- Credit Limit Meter Tile -->
-                        <div class="glass-panel rounded-3xl p-6 space-y-4">
-                            <div class="flex justify-between items-center text-xs text-slate-400 uppercase tracking-wider font-semibold">
-                                <span>Uso do Limite de Crédito</span>
-                                <span id="limitPctDisplay" class="font-mono text-cyan-400">0% Utilizado</span>
-                            </div>
-
-                            <div class="w-full bg-black/60 h-3 rounded-full overflow-hidden p-0.5 border border-white/10 relative">
-                                <div 
-                                    id="limitProgressBar"
-                                    class="h-full rounded-full bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 transition-all duration-1000 shadow-lg shadow-cyan-500/50"
-                                    style="width: 0%"
-                                ></div>
-                            </div>
-
-                            <div class="grid grid-cols-2 gap-4 pt-2 border-t border-white/5">
-                                <div>
-                                    <p class="text-[11px] text-slate-400 uppercase tracking-wider">Limite Disponível</p>
-                                    <p id="availLimitDisplay" class="text-lg font-bold font-mono text-emerald-400 mt-0.5">
-                                        R$ 0,00
-                                    </p>
-                                </div>
-                                <div>
-                                    <p class="text-[11px] text-slate-400 uppercase tracking-wider">Limite Total Junim</p>
-                                    <p id="totalLimitDisplay" class="text-lg font-bold font-mono text-slate-300 mt-0.5">
-                                        R$ 0,00
-                                    </p>
+                            <div class="w-10 h-7 rounded-lg bg-gradient-to-br from-amber-200 via-amber-400 to-amber-600 p-[1px] shadow-inner">
+                                <div class="w-full h-full bg-amber-300/40 rounded-[6px] border border-amber-600/50 flex flex-col justify-around p-0.5">
+                                    <div class="w-full h-[1px] bg-amber-700/60"></div>
+                                    <div class="w-full h-[1px] bg-amber-700/60"></div>
                                 </div>
                             </div>
                         </div>
 
+                        <!-- Card Middle -->
+                        <div class="flex justify-between items-center my-1">
+                            <i data-lucide="wifi" class="w-5 h-5 text-slate-400 transform rotate-90"></i>
+                            <span id="cardTierBadge" class="text-[10px] font-mono tracking-widest text-slate-400 bg-white/5 px-2 py-0.5 rounded border border-white/10">BLACK VIP</span>
+                        </div>
+
+                        <!-- Card Bottom -->
+                        <div class="space-y-2">
+                            <div id="cardNumberDisplay" class="font-mono text-xs sm:text-sm tracking-[0.2em] text-slate-200">
+                                4829 •••• •••• 9921
+                            </div>
+                            <div class="flex justify-between items-end">
+                                <div>
+                                    <p class="text-[8px] text-slate-400 uppercase tracking-wider">Titular do Cartão</p>
+                                    <p id="cardNameDisplay" class="font-semibold text-xs tracking-wide text-white uppercase truncate max-w-[150px]">NOME DO CLIENTE</p>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-[8px] text-slate-400 uppercase tracking-wider">Status Fatura</p>
+                                    <p id="cardStatusDisplay" class="font-mono text-[11px] text-cyan-400">ATIVO</p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
+                <!-- Metrics Tiles -->
+                <div class="space-y-4">
+                    
+                    <!-- Fatura Atual Tile -->
+                    <div class="glass-panel rounded-3xl p-5 border-l-4 border-l-cyan-400 relative overflow-hidden">
+                        <div class="flex justify-between items-start mb-1">
+                            <div>
+                                <span class="text-[11px] font-semibold uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
+                                    <span class="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
+                                    Fatura Atual • Valor Total
+                                </span>
+                                <h2 id="totalOwedDisplay" class="text-3xl font-extrabold font-mono text-white mt-1">
+                                    R$ 0,00
+                                </h2>
+                            </div>
+                            <span id="billStatusTag" class="text-[11px] px-2.5 py-1 rounded-full font-bold border bg-emerald-500/10 border-emerald-500/30 text-emerald-400">
+                                Fatura Quitada
+                            </span>
+                        </div>
+
+                        <p class="text-xs text-slate-400 mb-5 flex items-center gap-1.5">
+                            <i data-lucide="calendar" class="w-3.5 h-3.5 text-cyan-400"></i>
+                            Vencimento: <strong id="dueDateDisplay" class="text-white font-medium">Dia 10 de cada mês</strong>
+                        </p>
+
+                        <button 
+                            id="payBillBtn"
+                            onclick="openPayModal()"
+                            class="w-full py-3.5 px-4 rounded-2xl font-bold text-xs tracking-wide transition-all active:scale-95 flex items-center justify-center gap-2 shadow-xl bg-gradient-to-r from-cyan-400 via-cyan-500 to-blue-600 text-black shadow-cyan-500/20"
+                        >
+                            <i data-lucide="qr-code" class="w-4 h-4"></i>
+                            <span>Pagar Fatura com PIX</span>
+                        </button>
+                    </div>
+
+                    <!-- Credit Limit Meter Tile -->
+                    <div class="glass-panel rounded-3xl p-5 space-y-3">
+                        <div class="flex justify-between items-center text-[11px] text-slate-400 uppercase tracking-wider font-semibold">
+                            <span>Uso do Limite de Crédito</span>
+                            <span id="limitPctDisplay" class="font-mono text-cyan-400">0% Utilizado</span>
+                        </div>
+
+                        <div class="w-full bg-black/60 h-2.5 rounded-full overflow-hidden p-0.5 border border-white/10 relative">
+                            <div 
+                                id="limitProgressBar"
+                                class="h-full rounded-full bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 transition-all duration-1000 shadow-lg shadow-cyan-500/50"
+                                style="width: 0%"
+                            ></div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3 pt-2 border-t border-white/5">
+                            <div>
+                                <p class="text-[10px] text-slate-400 uppercase tracking-wider">Limite Disponível</p>
+                                <p id="availLimitDisplay" class="text-base font-bold font-mono text-emerald-400 mt-0.5">
+                                    R$ 0,00
+                                </p>
+                            </div>
+                            <div>
+                                <p class="text-[10px] text-slate-400 uppercase tracking-wider">Limite Total Junim</p>
+                                <p id="totalLimitDisplay" class="text-base font-bold font-mono text-slate-300 mt-0.5">
+                                    R$ 0,00
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
                 <!-- Lista de Consumos/Itens -->
-                <div class="glass-panel rounded-3xl p-6 space-y-4">
+                <div class="glass-panel rounded-3xl p-5 space-y-3">
                     <div class="flex justify-between items-center">
                         <div>
-                            <h3 class="font-bold text-base text-white flex items-center gap-2">
+                            <h3 class="font-bold text-sm text-white flex items-center gap-1.5">
                                 <i data-lucide="clock" class="w-4 h-4 text-cyan-400"></i>
                                 Lançamentos na Fatura
                             </h3>
-                            <p class="text-xs text-slate-400">Detalhamento dos consumos e valores de cada item</p>
+                            <p class="text-[11px] text-slate-400">Detalhamento dos consumos e valores</p>
                         </div>
                     </div>
 
@@ -377,52 +386,58 @@
             </div>
 
             <!-- TAB CONTENT 2: CLUBE BLACK -->
-            <div id="tabContent-beneficios" class="hidden space-y-6">
-                <div class="glass-panel rounded-3xl p-6 sm:p-8 space-y-6">
-                    <div class="flex items-center gap-4">
-                        <div class="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 shadow-lg shadow-amber-500/10">
-                            <i data-lucide="crown" class="w-7 h-7"></i>
+            <div id="tabContent-beneficios" class="hidden space-y-4">
+                <div class="glass-panel rounded-3xl p-5 space-y-5">
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 shadow-lg shrink-0">
+                            <i data-lucide="crown" class="w-6 h-6"></i>
                         </div>
                         <div>
-                            <h2 class="text-xl font-bold text-white">Membro <span id="clubTierTitle">BLACK VIP</span></h2>
-                            <p class="text-xs text-slate-400">Acesso exclusivo a vantagens e crédito na Barbearia Junim.</p>
+                            <h2 class="text-base font-bold text-white">Membro <span id="clubTierTitle">BLACK VIP</span></h2>
+                            <p class="text-[11px] text-slate-400">Vantagens exclusivas Barbearia Junim.</p>
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4">
-                        <div class="bg-black/50 border border-white/10 p-5 rounded-2xl space-y-2">
-                            <i data-lucide="coffee" class="w-6 h-6 text-cyan-400"></i>
-                            <h4 class="font-bold text-sm text-white">Bar Liberado no Local</h4>
-                            <p class="text-xs text-slate-400">1º Chopp ou Whisky por conta da casa em cada visita agendada.</p>
+                    <div class="space-y-3 pt-2">
+                        <div class="bg-black/50 border border-white/10 p-4 rounded-2xl space-y-1">
+                            <h4 class="font-bold text-xs text-white flex items-center gap-2">
+                                <i data-lucide="coffee" class="w-4 h-4 text-cyan-400"></i>
+                                Bar Liberado no Local
+                            </h4>
+                            <p class="text-[11px] text-slate-400">1º Chopp ou Whisky por conta da casa em cada visita agendada.</p>
                         </div>
 
-                        <div class="bg-black/50 border border-white/10 p-5 rounded-2xl space-y-2">
-                            <i data-lucide="shield-check" class="w-6 h-6 text-amber-400"></i>
-                            <h4 class="font-bold text-sm text-white">Fiado Digital Junim</h4>
-                            <p class="text-xs text-slate-400">Consuma serviços, produtos e bebidas e pague acumulado em até 30 dias.</p>
+                        <div class="bg-black/50 border border-white/10 p-4 rounded-2xl space-y-1">
+                            <h4 class="font-bold text-xs text-white flex items-center gap-2">
+                                <i data-lucide="shield-check" class="w-4 h-4 text-amber-400"></i>
+                                Fiado Digital Junim
+                            </h4>
+                            <p class="text-[11px] text-slate-400">Consuma serviços e produtos e pague acumulado em até 30 dias.</p>
                         </div>
 
-                        <div class="bg-black/50 border border-white/10 p-5 rounded-2xl space-y-2">
-                            <i data-lucide="zap" class="w-6 h-6 text-purple-400"></i>
-                            <h4 class="font-bold text-sm text-white">Agendamento Prioritário</h4>
-                            <p class="text-xs text-slate-400">Garantia de horário nos finais de semana e vésperas de feriados.</p>
+                        <div class="bg-black/50 border border-white/10 p-4 rounded-2xl space-y-1">
+                            <h4 class="font-bold text-xs text-white flex items-center gap-2">
+                                <i data-lucide="zap" class="w-4 h-4 text-purple-400"></i>
+                                Agendamento Prioritário
+                            </h4>
+                            <p class="text-[11px] text-slate-400">Garantia de horário nos finais de semana e feriados.</p>
                         </div>
                     </div>
 
-                    <div class="bg-gradient-to-r from-amber-500/10 via-black to-cyan-500/10 p-5 rounded-2xl border border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div class="bg-gradient-to-r from-amber-500/10 via-black to-cyan-500/10 p-4 rounded-2xl border border-white/10 space-y-3">
                         <div>
-                            <h4 class="font-bold text-sm text-white">Solicitar aumento do Limite Black?</h4>
-                            <p class="text-xs text-slate-400">Fale diretamente com o Junim no WhatsApp para reavaliar seu limite.</p>
+                            <h4 class="font-bold text-xs text-white">Solicitar aumento de Limite?</h4>
+                            <p class="text-[11px] text-slate-400">Fale diretamente com o Junim no WhatsApp.</p>
                         </div>
-                        <!-- COLOQUE SEU NUMERO DE WHATSAPP ABAIXO: substitua 5562999999999 -->
+                        <!-- DIGITE O SEU SEU NUMERO DE WHATSAPP NO HREF ABAIXO -->
                         <a 
                             href="https://wa.me/5562999999999?text=Ol%C3%A1%20Junim,%20gostaria%20de%20solicitar%20um%20aumento%20no%20meu%20limite!" 
                             target="_blank" 
                             rel="noopener noreferrer"
-                            class="bg-amber-400 hover:bg-amber-300 text-black font-bold text-xs px-5 py-3 rounded-xl transition-all flex items-center gap-2 whitespace-nowrap shadow-lg shadow-amber-400/20"
+                            class="bg-amber-400 active:scale-95 text-black font-bold text-xs py-3 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-amber-400/20 w-full"
                         >
                             <i data-lucide="message-circle" class="w-4 h-4"></i>
-                            Falar com Junim no WhatsApp
+                            Falar no WhatsApp
                         </a>
                     </div>
                 </div>
@@ -431,56 +446,56 @@
         </div>
 
         <!-- FOOTER CREDITS -->
-        <footer class="mt-auto pt-10 text-center text-xs text-slate-600 space-y-1">
-            <p>© 2026 Barbearia Junim • Sistema de Crédito Executivo & Fatura Digital</p>
+        <footer class="pt-6 text-center text-[10px] text-slate-600 space-y-1">
+            <p>© 2026 Barbearia Junim • Fatura Digital Nativa</p>
         </footer>
 
     </div>
 
     <!-- MODAL PIX -->
     <div id="payModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl animate-fade-in">
-        <div class="glass-panel w-full max-w-md rounded-3xl p-6 sm:p-8 space-y-6 border border-white/20 shadow-2xl relative">
+        <div class="glass-panel w-full max-w-sm rounded-3xl p-6 space-y-5 border border-white/20 shadow-2xl relative">
             
-            <div class="flex justify-between items-center border-b border-white/10 pb-4">
+            <div class="flex justify-between items-center border-b border-white/10 pb-3">
                 <div class="flex items-center gap-2">
-                    <div class="w-8 h-8 rounded-xl bg-cyan-500/20 flex items-center justify-center text-cyan-400">
+                    <div class="w-7 h-7 rounded-lg bg-cyan-500/20 flex items-center justify-center text-cyan-400">
                         <i data-lucide="shield-check" class="w-4 h-4"></i>
                     </div>
-                    <h3 class="font-bold text-base text-white">Pagamento Seguro Junim Bank</h3>
+                    <h3 class="font-bold text-sm text-white">Pagamento Seguro PIX</h3>
                 </div>
-                <button onclick="closePayModal()" class="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white flex items-center justify-center transition-colors">
+                <button onclick="closePayModal()" class="w-7 h-7 rounded-full bg-white/5 text-slate-400 flex items-center justify-center">
                     <i data-lucide="x" class="w-4 h-4"></i>
                 </button>
             </div>
 
-            <div id="payModalStep1" class="space-y-5">
+            <div id="payModalStep1" class="space-y-4">
                 <div class="text-center py-3 bg-black/40 rounded-2xl border border-white/5">
-                    <p class="text-xs text-slate-400 uppercase tracking-wider">Valor Total da Fatura</p>
-                    <p id="modalOwedAmount" class="text-3xl font-black font-mono text-cyan-300 mt-1">R$ 0,00</p>
-                    <p class="text-[11px] text-slate-500 mt-1">Beneficiário: Barbearia Junim LTDA</p>
+                    <p class="text-[10px] text-slate-400 uppercase tracking-wider">Valor Total da Fatura</p>
+                    <p id="modalOwedAmount" class="text-2xl font-black font-mono text-cyan-300 mt-0.5">R$ 0,00</p>
+                    <p class="text-[10px] text-slate-500 mt-0.5">Beneficiário: Barbearia Junim LTDA</p>
                 </div>
 
                 <button 
                     onclick="goToPayStep2()"
-                    class="w-full py-4 rounded-2xl bg-cyan-400 hover:bg-cyan-300 text-black font-extrabold text-sm tracking-wide shadow-xl shadow-cyan-500/20 transition-all flex items-center justify-center gap-2"
+                    class="w-full py-3.5 rounded-2xl bg-cyan-400 active:scale-95 text-black font-extrabold text-xs tracking-wide shadow-xl shadow-cyan-500/20 transition-all flex items-center justify-center gap-2"
                 >
                     Gerar QR Code PIX
                     <i data-lucide="arrow-right" class="w-4 h-4"></i>
                 </button>
             </div>
 
-            <div id="payModalStep2" class="hidden space-y-5 text-center">
-                <p class="text-xs text-slate-400">Escaneie o QR Code abaixo para pagar via PIX:</p>
+            <div id="payModalStep2" class="hidden space-y-4 text-center">
+                <p class="text-[11px] text-slate-400">Escaneie o QR Code abaixo para pagar via PIX:</p>
 
-                <div class="p-4 bg-white rounded-3xl w-48 h-48 mx-auto flex items-center justify-center shadow-2xl shadow-cyan-500/20 relative">
-                    <img id="pixQrCodeImage" src="" alt="QR Code PIX" class="w-full h-full rounded-2xl object-contain"/>
+                <div class="p-3 bg-white rounded-2xl w-44 h-44 mx-auto flex items-center justify-center shadow-2xl shadow-cyan-500/20">
+                    <img id="pixQrCodeImage" src="" alt="QR Code PIX" class="w-full h-full object-contain"/>
                 </div>
 
                 <div class="space-y-2">
                     <button 
                         onclick="copyPixKey()"
                         id="copyPixBtn"
-                        class="w-full py-3.5 px-4 rounded-2xl font-bold text-xs tracking-wide transition-all border border-white/20 bg-white/5 hover:bg-white/10 text-white flex items-center justify-center gap-2"
+                        class="w-full py-3 px-4 rounded-xl font-bold text-xs transition-all border border-white/20 bg-white/5 text-white flex items-center justify-center gap-2"
                     >
                         <i data-lucide="copy" class="w-4 h-4"></i>
                         <span>Copiar Código PIX</span>
@@ -488,25 +503,25 @@
 
                     <button 
                         onclick="simulatePaymentApproved()"
-                        class="w-full py-3 px-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-black font-extrabold text-xs tracking-wide shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center gap-2"
+                        class="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-black font-extrabold text-xs transition-all flex items-center justify-center gap-2"
                     >
-                        <i data-lucide="zap" class="w-4 h-4"></i>
+                        <i data-lucide="zap" class="w-3.5 h-3.5"></i>
                         Simular Pagamento Aprovado
                     </button>
                 </div>
             </div>
 
-            <div id="payModalStep3" class="hidden text-center py-6 space-y-4">
-                <div class="w-16 h-16 bg-emerald-500/20 border border-emerald-400/40 rounded-full flex items-center justify-center text-emerald-400 mx-auto animate-bounce">
-                    <i data-lucide="check" class="w-8 h-8"></i>
+            <div id="payModalStep3" class="hidden text-center py-4 space-y-3">
+                <div class="w-14 h-14 bg-emerald-500/20 border border-emerald-400/40 rounded-full flex items-center justify-center text-emerald-400 mx-auto">
+                    <i data-lucide="check" class="w-7 h-7"></i>
                 </div>
                 <div>
-                    <h4 class="text-xl font-bold text-white">Fatura Quitada com Sucesso!</h4>
-                    <p class="text-xs text-slate-400 mt-1">Seu limite foi renovado.</p>
+                    <h4 class="text-base font-bold text-white">Fatura Quitada com Sucesso!</h4>
+                    <p class="text-[11px] text-slate-400 mt-0.5">Seu limite foi renovado.</p>
                 </div>
                 <button 
                     onclick="closePayModal()"
-                    class="w-full py-3.5 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs transition-all"
+                    class="w-full py-3 rounded-xl bg-white/10 text-white font-bold text-xs"
                 >
                     Voltar para Fatura
                 </button>
@@ -517,12 +532,10 @@
 
     <!-- JAVASCRIPT LOGIC -->
     <script>
-        // REGISTRO DO SERVICE WORKER (PWA)
+        // REGISTRO SERVICE WORKER (PWA NATIVO)
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js')
-                    .then(reg => console.log('Service Worker registrado com sucesso:', reg.scope))
-                    .catch(err => console.log('Falha ao registrar Service Worker:', err));
+                navigator.serviceWorker.register('./sw.js').catch(() => {});
             });
         }
 
@@ -538,27 +551,34 @@
 
             text.innerText = msg;
             if (isError) {
-                box.className = "bg-rose-500/20 border border-rose-500/40 backdrop-blur-xl text-rose-200 px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3";
+                box.className = "bg-rose-500/20 border border-rose-500/40 backdrop-blur-xl text-rose-200 px-4 py-3 rounded-2xl shadow-2xl flex items-center justify-center gap-3";
                 icon.setAttribute("data-lucide", "alert-circle");
-                icon.className = "w-5 h-5 text-rose-400";
+                icon.className = "w-5 h-5 text-rose-400 shrink-0";
             } else {
-                box.className = "bg-cyan-500/10 border border-cyan-400/40 backdrop-blur-xl text-cyan-200 px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3";
+                box.className = "bg-cyan-500/10 border border-cyan-400/40 backdrop-blur-xl text-cyan-200 px-4 py-3 rounded-2xl shadow-2xl flex items-center justify-center gap-3";
                 icon.setAttribute("data-lucide", "check-circle-2");
-                icon.className = "w-5 h-5 text-cyan-400";
+                icon.className = "w-5 h-5 text-cyan-400 shrink-0";
             }
             if (window.lucide) window.lucide.createIcons();
 
             container.classList.remove('opacity-0', '-translate-y-4', 'pointer-events-none');
             setTimeout(() => {
                 container.classList.add('opacity-0', '-translate-y-4', 'pointer-events-none');
-            }, 3500);
+            }, 3000);
         }
 
-        window.addEventListener('DOMContentLoaded', () => {
+        // TENTA AUTOLOGIN SE JA HOUVER CLIENTE SALVO
+        window.addEventListener('DOMContentLoaded', async () => {
             if (window.lucide) window.lucide.createIcons();
+            
+            const savedClient = localStorage.getItem('junim_auto_login_user');
+            if (savedClient) {
+                document.getElementById('clientNameInput').value = savedClient;
+                await performLogin(savedClient, true);
+            }
         });
 
-        // PARSER DA ESTRUTURA DOS ITENS
+        // PARSER DE ITENS E VALORES
         function parseSingleItemLine(rawText) {
             if (!rawText) return null;
             let line = String(rawText).replace(/%0A/gi, '').replace(/[\r\n]/g, '').trim();
@@ -618,7 +638,7 @@
             };
         }
 
-        // 1. VERIFICA NA ABA 'conf' SE O CLIENTE EXISTE
+        // VERIFICA SE CLIENTE EXISTE NA ABA conf
         async function verifyAndFetchConfData(sheetId, clientName) {
             try {
                 const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&sheet=conf`;
@@ -663,21 +683,20 @@
 
                 return { found: false };
             } catch (err) {
-                console.error("Erro ao validar na aba conf:", err);
                 return null;
             }
         }
 
-        // 2. BUSCA A ABA COM O NOME DO CLIENTE E LE DA LINHA 2 EM DIANTE OS ITENS
+        // LÊ DADOS DA ABA DO CLIENTE
         async function fetchClientTabData(sheetId, confInfo) {
             try {
                 const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(confInfo.officialName)}`;
                 const response = await fetch(url);
-                if (!response.ok) throw new Error("Erro ao carregar a aba do cliente.");
+                if (!response.ok) throw new Error();
 
                 const text = await response.text();
                 const jsonMatch = text.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\);/);
-                if (!jsonMatch) throw new Error("Aba do cliente não encontrada.");
+                if (!jsonMatch) throw new Error();
 
                 const parsed = JSON.parse(jsonMatch[1]);
                 const rows = parsed.table.rows;
@@ -731,7 +750,6 @@
                     transactions: transactions
                 };
             } catch (err) {
-                console.warn("Não foi possível carregar o extrato da aba do cliente:", err);
                 return {
                     id: "sheet_" + confInfo.officialName.replace(/\s+/g, '_'),
                     name: confInfo.officialName,
@@ -750,48 +768,62 @@
             e.preventDefault();
             const name = document.getElementById('clientNameInput').value.trim();
             if (!name) return;
+            await performLogin(name, false);
+        }
 
+        async function performLogin(name, isAuto = false) {
             const submitBtn = document.querySelector('#loginForm button[type="submit"]');
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = `<i data-lucide="refresh-cw" class="w-4 h-4 animate-spin"></i> Entrando...`;
-            if (window.lucide) window.lucide.createIcons();
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = `<i data-lucide="refresh-cw" class="w-4 h-4 animate-spin"></i> Entrando...`;
+                if (window.lucide) window.lucide.createIcons();
+            }
 
             const confInfo = await verifyAndFetchConfData(currentGoogleSheetId, name);
 
             if (!confInfo || !confInfo.found) {
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = `<span>Login</span><i data-lucide="arrow-right" class="w-4 h-4"></i>`;
-                if (window.lucide) window.lucide.createIcons();
-
-                showToast("Cliente não cadastrado!", true);
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = `<span>Login</span><i data-lucide="arrow-right" class="w-4 h-4"></i>`;
+                    if (window.lucide) window.lucide.createIcons();
+                }
+                localStorage.removeItem('junim_auto_login_user');
+                showToast("Cliente não encontrado!", true);
                 return;
             }
 
             const clientData = await fetchClientTabData(currentGoogleSheetId, confInfo);
             currentClient = clientData;
 
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = `<span>Login</span><i data-lucide="arrow-right" class="w-4 h-4"></i>`;
-            if (window.lucide) window.lucide.createIcons();
+            // Salva no navegador para lembrar do login
+            localStorage.setItem('junim_auto_login_user', clientData.name);
+
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = `<span>Login</span><i data-lucide="arrow-right" class="w-4 h-4"></i>`;
+                if (window.lucide) window.lucide.createIcons();
+            }
 
             document.getElementById('loginScreen').classList.add('hidden');
             document.getElementById('dashboardScreen').classList.remove('hidden');
 
-            document.getElementById('headerClientName').innerText = clientData.name;
             document.getElementById('userHeaderBadge').classList.remove('hidden');
             document.getElementById('userHeaderBadge').classList.add('flex');
 
             renderDashboard();
-            showToast(`Bem-vindo, ${clientData.name}!`);
+            if (!isAuto) showToast(`Bem-vindo, ${clientData.name}!`);
         }
 
+        // FUNÇÃO DE SAÍDA DE FÁCIL ACESSO (LOGOUT)
         function logoutClient() {
             currentClient = null;
+            localStorage.removeItem('junim_auto_login_user');
             document.getElementById('dashboardScreen').classList.add('hidden');
             document.getElementById('loginScreen').classList.remove('hidden');
             document.getElementById('userHeaderBadge').classList.add('hidden');
             document.getElementById('userHeaderBadge').classList.remove('flex');
             document.getElementById('clientNameInput').value = '';
+            showToast("Você saiu da conta.");
         }
 
         function showLoginScreen() {
@@ -810,7 +842,6 @@
             const limitAvail = Math.max(0, limitTotal - totalOwed);
             const limitPct = Math.min(100, ((totalOwed / limitTotal) * 100)).toFixed(1);
 
-            // Verificação do Vencimento
             const currentDay = new Date().getDate();
             const dueDayParsed = parseInt(currentClient.dueDateDay, 10) || 10;
             const isOverdue = totalOwed > 0 && currentDay > dueDayParsed;
@@ -840,19 +871,19 @@
             const cardStatus = document.getElementById('cardStatusDisplay');
 
             if (totalOwed === 0) {
-                billTag.className = 'text-xs px-3 py-1 rounded-full font-bold border bg-emerald-500/10 border-emerald-500/30 text-emerald-400';
+                billTag.className = 'text-[11px] px-2.5 py-1 rounded-full font-bold border bg-emerald-500/10 border-emerald-500/30 text-emerald-400';
                 billTag.innerText = 'Fatura Quitada';
-                cardStatus.className = 'font-mono text-xs text-cyan-400';
+                cardStatus.className = 'font-mono text-[11px] text-cyan-400';
                 cardStatus.innerText = 'ATIVO';
             } else if (isOverdue) {
-                billTag.className = 'text-xs px-3 py-1 rounded-full font-bold border bg-rose-500/10 border-rose-500/30 text-rose-400 animate-pulse';
+                billTag.className = 'text-[11px] px-2.5 py-1 rounded-full font-bold border bg-rose-500/10 border-rose-500/30 text-rose-400 animate-pulse';
                 billTag.innerText = 'Fatura Vencida';
-                cardStatus.className = 'font-mono text-xs text-rose-400 font-bold';
+                cardStatus.className = 'font-mono text-[11px] text-rose-400 font-bold';
                 cardStatus.innerText = 'BLOQUEADO';
             } else {
-                billTag.className = 'text-xs px-3 py-1 rounded-full font-bold border bg-amber-500/10 border-amber-500/30 text-amber-300';
+                billTag.className = 'text-[11px] px-2.5 py-1 rounded-full font-bold border bg-amber-500/10 border-amber-500/30 text-amber-300';
                 billTag.innerText = 'Fatura Aberta';
-                cardStatus.className = 'font-mono text-xs text-cyan-400';
+                cardStatus.className = 'font-mono text-[11px] text-cyan-400';
                 cardStatus.innerText = 'ATIVO';
             }
 
@@ -865,37 +896,37 @@
             const container = document.getElementById('recentTransactionsList');
             if (!transactions || transactions.length === 0) {
                 container.innerHTML = `
-                    <div class="text-center py-10 border border-dashed border-white/10 rounded-2xl">
-                        <i data-lucide="check-circle-2" class="w-10 h-10 text-emerald-400 mx-auto mb-2 opacity-80"></i>
-                        <p class="text-slate-300 font-semibold text-sm">Sua fatura está quitada!</p>
-                        <p class="text-xs text-slate-500 mt-1">Nenhum consumo registrado na sua conta.</p>
+                    <div class="text-center py-8 border border-dashed border-white/10 rounded-2xl">
+                        <i data-lucide="check-circle-2" class="w-8 h-8 text-emerald-400 mx-auto mb-1 opacity-80"></i>
+                        <p class="text-slate-300 font-semibold text-xs">Fatura quitada!</p>
+                        <p class="text-[10px] text-slate-500 mt-0.5">Sem consumos pendentes.</p>
                     </div>
                 `;
                 return;
             }
 
             container.innerHTML = transactions.map(item => `
-                <div class="py-3.5 flex items-center justify-between gap-4 group hover:bg-white/[0.02] px-2 rounded-xl transition-colors">
-                    <div class="flex items-center gap-3">
-                        <div class="w-9 h-9 rounded-xl flex items-center justify-center border ${
+                <div class="py-3 flex items-center justify-between gap-3 group">
+                    <div class="flex items-center gap-2.5 min-w-0">
+                        <div class="w-8 h-8 rounded-xl flex items-center justify-center border shrink-0 ${
                             item.category === 'service' ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-400' :
                             item.category === 'bar' ? 'bg-purple-500/10 border-purple-500/30 text-purple-400' :
                             'bg-amber-500/10 border-amber-500/30 text-amber-400'
                         }">
-                            <i data-lucide="${item.category === 'service' ? 'scissors' : item.category === 'bar' ? 'wine' : 'package'}" class="w-4 h-4"></i>
+                            <i data-lucide="${item.category === 'service' ? 'scissors' : item.category === 'bar' ? 'wine' : 'package'}" class="w-3.5 h-3.5"></i>
                         </div>
-                        <div>
-                            <p class="text-xs sm:text-sm font-semibold text-white group-hover:text-cyan-300 transition-colors">${item.title}</p>
-                            <p class="text-[11px] text-slate-400 flex items-center gap-2 mt-0.5">
+                        <div class="min-w-0">
+                            <p class="text-xs font-semibold text-white truncate">${item.title}</p>
+                            <p class="text-[10px] text-slate-400 flex items-center gap-1.5 mt-0.5">
                                 <span>${item.date}</span>
                                 <span>•</span>
                                 <span class="text-slate-300">${item.barber}</span>
                             </p>
                         </div>
                     </div>
-                    <div class="text-right">
-                        <p class="text-xs sm:text-sm font-bold font-mono text-cyan-300">R$ ${item.price.toFixed(2)}</p>
-                        <span class="text-[10px] text-amber-400/90 font-medium">Lançado</span>
+                    <div class="text-right shrink-0">
+                        <p class="text-xs font-bold font-mono text-cyan-300">R$ ${item.price.toFixed(2)}</p>
+                        <span class="text-[9px] text-amber-400/90 font-medium">Lançado</span>
                     </div>
                 </div>
             `).join('');
@@ -906,10 +937,10 @@
                 const btn = document.getElementById(`tabBtn-${t}`);
                 const content = document.getElementById(`tabContent-${t}`);
                 if (t === tab) {
-                    btn.className = "flex-1 py-2.5 sm:py-3 px-3 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-300 flex items-center justify-center gap-2 bg-gradient-to-r from-cyan-500/20 to-blue-600/20 text-cyan-300 border border-cyan-500/30 shadow-lg shadow-cyan-500/10";
+                    btn.className = "flex-1 py-2.5 px-3 rounded-xl text-xs font-semibold transition-all duration-300 flex items-center justify-center gap-2 bg-gradient-to-r from-cyan-500/20 to-blue-600/20 text-cyan-300 border border-cyan-500/30 shadow-lg";
                     content.classList.remove('hidden');
                 } else {
-                    btn.className = "flex-1 py-2.5 sm:py-3 px-3 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-300 flex items-center justify-center gap-2 text-slate-400 hover:text-white hover:bg-white/5";
+                    btn.className = "flex-1 py-2.5 px-3 rounded-xl text-xs font-semibold transition-all duration-300 flex items-center justify-center gap-2 text-slate-400 hover:text-white";
                     content.classList.add('hidden');
                 }
             });
