@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <!-- Viewport estrito para mobile nativo, sem zoom e respeitando safe-area / island -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Barbearia Junim Fatura</title>
+    <title>Barbearia Junim • Fatura Digital</title>
 
     <!-- PWA Web App Manifest & Configurações de Standalone iOS/Android -->
     <link rel="manifest" href="./manifest.json">
@@ -50,7 +50,7 @@
     </script>
 
     <style>
-        /* Desabilita duplos toques de zoom e seleção de texto para sensation nativa */
+        /* Desabilita duplos toques de zoom e seleção de texto para sensação nativa */
         * {
             touch-action: manipulation;
             -webkit-tap-highlight-color: transparent;
@@ -128,7 +128,7 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
-        ::-webkit-scrollbar { width: 0px; height: 0px; } /* Oculta scrollbar no celular */
+        ::-webkit-scrollbar { width: 0px; height: 0px; }
     </style>
 </head>
 <body class="min-h-screen antialiased selection:bg-cyan-500 selection:text-black relative flex flex-col justify-between">
@@ -170,7 +170,7 @@
                 </div>
             </div>
 
-            <!-- Botão Fixo e Fácil de Sair (Logout) -->
+            <!-- Botão Fixo de Logout -->
             <div id="userHeaderBadge" class="hidden items-center gap-2">
                 <button onclick="logoutClient()" class="bg-rose-500/10 border border-rose-500/30 active:scale-95 text-rose-300 text-xs px-3 py-1.5 rounded-xl flex items-center gap-1.5 transition-all font-semibold">
                     <i data-lucide="log-out" class="w-3.5 h-3.5 text-rose-400"></i>
@@ -429,7 +429,6 @@
                             <h4 class="font-bold text-xs text-white">Solicitar aumento de Limite?</h4>
                             <p class="text-[11px] text-slate-400">Fale diretamente com o Junim no WhatsApp.</p>
                         </div>
-                        <!-- DIGITE O SEU SEU NUMERO DE WHATSAPP NO HREF ABAIXO -->
                         <a 
                             href="https://wa.me/5562999999999?text=Ol%C3%A1%20Junim,%20gostaria%20de%20solicitar%20um%20aumento%20no%20meu%20limite!" 
                             target="_blank" 
@@ -567,7 +566,7 @@
             }, 3000);
         }
 
-        // TENTA AUTOLOGIN SE JA HOUVER CLIENTE SALVO
+        // AUTO-LOGIN AO ABRIR O APP
         window.addEventListener('DOMContentLoaded', async () => {
             if (window.lucide) window.lucide.createIcons();
             
@@ -578,7 +577,7 @@
             }
         });
 
-        // PARSER DE ITENS E VALORES
+        // PARSER DA ESTRUTURA DOS ITENS
         function parseSingleItemLine(rawText) {
             if (!rawText) return null;
             let line = String(rawText).replace(/%0A/gi, '').replace(/[\r\n]/g, '').trim();
@@ -638,7 +637,7 @@
             };
         }
 
-        // VERIFICA SE CLIENTE EXISTE NA ABA conf
+        // 1. LEITURA MINUCIOSA DA ABA conf (COLUNA A = NOME, B = LIMITE, C = VENCIMENTO, D = STATUS PAGAMENTO VERDE/VERMELHO)
         async function verifyAndFetchConfData(sheetId, clientName) {
             try {
                 const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&sheet=conf`;
@@ -672,11 +671,21 @@
                             dueVal = String(r.c[2].v || r.c[2].f || '').trim();
                         }
 
+                        // LEITURA MINUCIOSA DA COLUNA D (PAGAMENTO / VERDE OU VERMELHO)
+                        let isPaidInConf = false;
+                        if (r.c[3]) {
+                            const rawColD = String(r.c[3].v || r.c[3].f || '').toLowerCase().trim();
+                            if (rawColD.includes('verde') || rawColD.includes('pago') || rawColD.includes('ok') || rawColD.includes('sim') || rawColD === 'true' || rawColD === '1') {
+                                isPaidInConf = true;
+                            }
+                        }
+
                         return {
                             found: true,
                             officialName: nameCell,
                             limitTotal: limitVal,
-                            dueDateDay: dueVal
+                            dueDateDay: dueVal,
+                            isPaidInConf: isPaidInConf
                         };
                     }
                 }
@@ -687,7 +696,7 @@
             }
         }
 
-        // LÊ DADOS DA ABA DO CLIENTE
+        // 2. LEITURA DA ABA DO CLIENTE
         async function fetchClientTabData(sheetId, confInfo) {
             try {
                 const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(confInfo.officialName)}`;
@@ -734,7 +743,10 @@
                     }
                 });
 
-                if (explicitTotal === null) {
+                // Se na aba conf a Coluna D estiver VERDE (Pago)
+                if (confInfo.isPaidInConf) {
+                    explicitTotal = 0;
+                } else if (explicitTotal === null) {
                     explicitTotal = transactions.reduce((acc, curr) => acc + curr.price, 0);
                 }
 
@@ -746,6 +758,7 @@
                     limitTotal: confInfo.limitTotal,
                     dueDateDay: confInfo.dueDateDay,
                     dueDate: `Dia ${confInfo.dueDateDay} de cada mês`,
+                    isPaidInConf: confInfo.isPaidInConf,
                     explicitTotal: explicitTotal,
                     transactions: transactions
                 };
@@ -758,7 +771,8 @@
                     limitTotal: confInfo.limitTotal,
                     dueDateDay: confInfo.dueDateDay || "10",
                     dueDate: `Dia ${confInfo.dueDateDay || 10} de cada mês`,
-                    explicitTotal: 0,
+                    isPaidInConf: confInfo.isPaidInConf || false,
+                    explicitTotal: confInfo.isPaidInConf ? 0 : 0,
                     transactions: []
                 };
             }
@@ -795,7 +809,6 @@
             const clientData = await fetchClientTabData(currentGoogleSheetId, confInfo);
             currentClient = clientData;
 
-            // Salva no navegador para lembrar do login
             localStorage.setItem('junim_auto_login_user', clientData.name);
 
             if (submitBtn) {
@@ -814,7 +827,6 @@
             if (!isAuto) showToast(`Bem-vindo, ${clientData.name}!`);
         }
 
-        // FUNÇÃO DE SAÍDA DE FÁCIL ACESSO (LOGOUT)
         function logoutClient() {
             currentClient = null;
             localStorage.removeItem('junim_auto_login_user');
@@ -844,7 +856,10 @@
 
             const currentDay = new Date().getDate();
             const dueDayParsed = parseInt(currentClient.dueDateDay, 10) || 10;
-            const isOverdue = totalOwed > 0 && currentDay > dueDayParsed;
+            
+            // LÓGICA DE VENCIMENTO BASEADA NA COLUNA D (VERDE / VERMELHO)
+            const isPaidInConf = currentClient.isPaidInConf || totalOwed === 0;
+            const isOverdue = !isPaidInConf && currentDay > dueDayParsed;
 
             document.getElementById('cardNameDisplay').innerText = currentClient.name;
             document.getElementById('cardNumberDisplay').innerText = currentClient.cardNumber;
@@ -857,6 +872,9 @@
             if (isOverdue) {
                 dueDisplay.className = "text-rose-400 font-bold";
                 dueDisplay.innerText = `⚠️ Vencida (Venceu dia ${dueDayParsed})`;
+            } else if (isPaidInConf) {
+                dueDisplay.className = "text-emerald-400 font-medium";
+                dueDisplay.innerText = `Renovado para o próximo mês (Dia ${dueDayParsed})`;
             } else {
                 dueDisplay.className = "text-white font-medium";
                 dueDisplay.innerText = `Dia ${dueDayParsed} de cada mês`;
@@ -870,7 +888,7 @@
             const billTag = document.getElementById('billStatusTag');
             const cardStatus = document.getElementById('cardStatusDisplay');
 
-            if (totalOwed === 0) {
+            if (isPaidInConf) {
                 billTag.className = 'text-[11px] px-2.5 py-1 rounded-full font-bold border bg-emerald-500/10 border-emerald-500/30 text-emerald-400';
                 billTag.innerText = 'Fatura Quitada';
                 cardStatus.className = 'font-mono text-[11px] text-cyan-400';
@@ -894,12 +912,12 @@
 
         function renderRecentTransactions(transactions) {
             const container = document.getElementById('recentTransactionsList');
-            if (!transactions || transactions.length === 0) {
+            if (!transactions || transactions.length === 0 || currentClient.isPaidInConf) {
                 container.innerHTML = `
                     <div class="text-center py-8 border border-dashed border-white/10 rounded-2xl">
                         <i data-lucide="check-circle-2" class="w-8 h-8 text-emerald-400 mx-auto mb-1 opacity-80"></i>
                         <p class="text-slate-300 font-semibold text-xs">Fatura quitada!</p>
-                        <p class="text-[10px] text-slate-500 mt-0.5">Sem consumos pendentes.</p>
+                        <p class="text-[10px] text-slate-500 mt-0.5">Sem consumos pendentes para este mês.</p>
                     </div>
                 `;
                 return;
@@ -950,7 +968,7 @@
             if (!currentClient) return;
             const totalOwed = currentClient.explicitTotal !== null ? currentClient.explicitTotal : 0;
 
-            if (totalOwed === 0) {
+            if (totalOwed === 0 || currentClient.isPaidInConf) {
                 showToast("Sua fatura já está zerada!");
                 return;
             }
@@ -999,9 +1017,7 @@
             if (!currentClient) return;
 
             currentClient.explicitTotal = 0;
-            if (currentClient.transactions) {
-                currentClient.transactions.forEach(t => t.status = 'Pago');
-            }
+            currentClient.isPaidInConf = true;
 
             document.getElementById('payModalStep2').classList.add('hidden');
             document.getElementById('payModalStep3').classList.remove('hidden');
