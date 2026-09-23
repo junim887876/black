@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <!-- Viewport estrito para mobile nativo, sem zoom e respeitando safe-area / island -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Barbearia Junim Fatura Digital</title>
+    <title>Barbearia Junim • Fatura Digital</title>
 
     <!-- PWA Web App Manifest & Configurações de Standalone iOS/Android -->
     <link rel="manifest" href="./manifest.json">
@@ -50,24 +50,33 @@
     </script>
 
     <style>
-        /* Desabilita duplos toques de zoom e seleção de texto para sensação nativa */
-        * {
-            touch-action: manipulation;
+        /* Trava nativa contra zoom, arrasto horizontal e seleção de elementos */
+        html, body {
+            overflow-x: hidden !important;
+            overscroll-behavior-x: none !important;
+            touch-action: pan-y !important;
             -webkit-tap-highlight-color: transparent;
+            user-select: none !important;
+            -webkit-user-select: none !important;
+            -webkit-user-drag: none !important;
+            width: 100vw;
+            max-width: 100%;
         }
 
         body {
             background-color: #050608;
             color: #E2E8F0;
             font-family: 'Inter', sans-serif;
-            overflow-x: hidden;
-            user-select: none;
-            -webkit-user-select: none;
             /* Suporte a Notch e Dynamic Island do iPhone */
             padding-top: env(safe-area-inset-top, 0px);
             padding-bottom: env(safe-area-inset-bottom, 0px);
             padding-left: env(safe-area-inset-left, 0px);
             padding-right: env(safe-area-inset-right, 0px);
+        }
+
+        img {
+            pointer-events: none;
+            -webkit-user-drag: none;
         }
 
         .glass-panel {
@@ -81,6 +90,7 @@
             background: radial-gradient(circle at 20% 20%, #2a2d3d 0%, #0d0f17 50%, #050609 100%);
             position: relative;
             box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.8), 0 0 25px rgba(0, 242, 254, 0.1);
+            touch-action: none; /* Impede deslize do cartão */
         }
 
         .black-card-bg::before {
@@ -145,7 +155,7 @@
     </div>
 
     <!-- MAIN APP WRAPPER -->
-    <div class="w-full max-w-md mx-auto px-4 pt-3 pb-8 flex-1 flex flex-col justify-between">
+    <div class="w-full max-w-md mx-auto px-4 pt-3 pb-8 flex-1 flex flex-col justify-between overflow-x-hidden">
 
         <!-- HEADER / BRANDING BAR -->
         <header class="flex items-center justify-between gap-3 py-3 mb-4 border-b border-white/10">
@@ -227,7 +237,7 @@
         </div>
 
         <!-- SCREEN 2: DASHBOARD -->
-        <div id="dashboardScreen" class="hidden space-y-5 animate-fade-in flex-1">
+        <div id="dashboardScreen" class="hidden space-y-5 animate-fade-in flex-1 overflow-x-hidden">
 
             <!-- Navigation Tabs -->
             <div class="flex items-center justify-between bg-black/50 border border-white/10 rounded-2xl p-1 backdrop-blur-xl">
@@ -252,8 +262,8 @@
             <!-- TAB CONTENT 1: FATURA & CARTÃO BLACK -->
             <div id="tabContent-fatura" class="space-y-5">
                 
-                <!-- Card Display -->
-                <div class="flex justify-center">
+                <!-- Card Display (Fixo, sem deslize) -->
+                <div class="flex justify-center select-none">
                     <div class="w-full aspect-[1.586/1] black-card-bg rounded-3xl p-5 flex flex-col justify-between text-white border border-white/20 relative group">
                         
                         <!-- Card Top -->
@@ -494,36 +504,12 @@
                     <button 
                         onclick="copyPixKey()"
                         id="copyPixBtn"
-                        class="w-full py-3 px-4 rounded-xl font-bold text-xs transition-all border border-white/20 bg-white/5 text-white flex items-center justify-center gap-2"
+                        class="w-full py-3 px-4 rounded-xl font-bold text-xs transition-all border border-white/20 bg-white/5 text-white flex items-center justify-center gap-2 active:scale-95"
                     >
                         <i data-lucide="copy" class="w-4 h-4"></i>
                         <span>Copiar Código PIX</span>
                     </button>
-
-                    <button 
-                        onclick="simulatePaymentApproved()"
-                        class="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-black font-extrabold text-xs transition-all flex items-center justify-center gap-2"
-                    >
-                        <i data-lucide="zap" class="w-3.5 h-3.5"></i>
-                        Simular Pagamento Aprovado
-                    </button>
                 </div>
-            </div>
-
-            <div id="payModalStep3" class="hidden text-center py-4 space-y-3">
-                <div class="w-14 h-14 bg-emerald-500/20 border border-emerald-400/40 rounded-full flex items-center justify-center text-emerald-400 mx-auto">
-                    <i data-lucide="check" class="w-7 h-7"></i>
-                </div>
-                <div>
-                    <h4 class="text-base font-bold text-white">Fatura Quitada com Sucesso!</h4>
-                    <p class="text-[11px] text-slate-400 mt-0.5">Seu limite foi renovado.</p>
-                </div>
-                <button 
-                    onclick="closePayModal()"
-                    class="w-full py-3 rounded-xl bg-white/10 text-white font-bold text-xs"
-                >
-                    Voltar para Fatura
-                </button>
             </div>
 
         </div>
@@ -641,7 +627,7 @@
             };
         }
 
-        // 1. LEITURA MINUCIOSA DA ABA conf (COLUNA A = NOME, B = LIMITE, C = VENCIMENTO, D = STATUS PAGAMENTO VERDE/VERMELHO)
+        // LEITURA MINUCIOSA DA ABA conf
         async function verifyAndFetchConfData(sheetId, clientName) {
             try {
                 const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&sheet=conf`;
@@ -675,7 +661,6 @@
                             dueVal = String(r.c[2].v || r.c[2].f || '').trim();
                         }
 
-                        // LEITURA DA COLUNA D (PAGAMENTO / VERDE OU VERMELHO)
                         let isPaidInConf = false;
                         if (r.c[3]) {
                             const rawColD = String(r.c[3].v || r.c[3].f || '').toLowerCase().trim();
@@ -700,7 +685,7 @@
             }
         }
 
-        // 2. LEITURA DA ABA DO CLIENTE
+        // LEITURA DA ABA DO CLIENTE
         async function fetchClientTabData(sheetId, confInfo) {
             try {
                 const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(confInfo.officialName)}`;
@@ -982,7 +967,6 @@
 
             document.getElementById('payModalStep1').classList.remove('hidden');
             document.getElementById('payModalStep2').classList.add('hidden');
-            document.getElementById('payModalStep3').classList.add('hidden');
 
             document.getElementById('payModal').classList.remove('hidden');
         }
@@ -1009,19 +993,6 @@
             if (window.lucide) window.lucide.createIcons();
 
             showToast("Chave PIX Copiada!");
-        }
-
-        function simulatePaymentApproved() {
-            if (!currentClient) return;
-
-            currentClient.explicitTotal = 0;
-            currentClient.isPaidInConf = true;
-
-            document.getElementById('payModalStep2').classList.add('hidden');
-            document.getElementById('payModalStep3').classList.remove('hidden');
-
-            renderDashboard();
-            showToast("Pagamento aprovado!");
         }
     </script>
 </body>
