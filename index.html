@@ -5,6 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Barbearia Junim • Fatura Digital</title>
 
+    <!-- PWA Web App Manifest & Theme Color -->
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#050608">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="icon" type="image/png" href="./icon.png">
+    <link rel="apple-touch-icon" href="./icon.png">
+
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
 
@@ -129,9 +137,15 @@
         <!-- HEADER / BRANDING BAR -->
         <header class="flex items-center justify-between gap-4 py-4 mb-6 border-b border-white/10">
             <div class="flex items-center gap-3 cursor-pointer" onclick="showLoginScreen()">
-                <div class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-amber-500 via-cyan-400 to-indigo-600 p-[1.5px] flex items-center justify-center shadow-lg shadow-cyan-500/10">
-                    <div class="w-full h-full bg-black rounded-[14px] flex items-center justify-center">
-                        <i data-lucide="scissors" class="w-5 h-5 text-cyan-400 transform -rotate-45"></i>
+                <!-- LOGOTIPO DA BARBEARIA JUNIM -->
+                <div class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-amber-500 via-cyan-400 to-indigo-600 p-[1.5px] flex items-center justify-center shadow-lg shadow-cyan-500/10 overflow-hidden">
+                    <div class="w-full h-full bg-black rounded-[14px] flex items-center justify-center overflow-hidden">
+                        <img 
+                            src="./icon.png" 
+                            alt="Barbearia Junim Logo" 
+                            class="w-full h-full object-cover rounded-[14px]"
+                            onerror="this.onerror=null; this.parentElement.innerHTML='<i data-lucide=\'scissors\' class=\'w-5 h-5 text-cyan-400 transform -rotate-45\'></i>';"
+                        />
                     </div>
                 </div>
                 <div>
@@ -157,9 +171,14 @@
         <div id="loginScreen" class="flex-1 flex flex-col items-center justify-center py-8 animate-fade-in">
             <div class="w-full max-w-md glass-panel rounded-3xl p-6 sm:p-8 space-y-6 border border-white/15 shadow-2xl relative">
                 
-                <div class="text-center space-y-2">
-                    <div class="w-16 h-16 rounded-2xl bg-cyan-500/10 border border-cyan-400/30 flex items-center justify-center text-cyan-400 mx-auto shadow-xl shadow-cyan-500/10">
-                        <i data-lucide="credit-card" class="w-8 h-8"></i>
+                <div class="text-center space-y-3">
+                    <div class="w-20 h-20 rounded-3xl bg-cyan-500/10 border border-cyan-400/30 flex items-center justify-center text-cyan-400 mx-auto shadow-xl shadow-cyan-500/10 overflow-hidden p-1">
+                        <img 
+                            src="./icon.png" 
+                            alt="Logo Barbearia Junim" 
+                            class="w-full h-full object-cover rounded-2xl" 
+                            onerror="this.onerror=null; this.parentElement.innerHTML='<i data-lucide=\'credit-card\' class=\'w-8 h-8\'></i>';"
+                        />
                     </div>
                     <h2 class="text-xl sm:text-2xl font-bold text-white tracking-wide">Acessar Fatura Digital</h2>
                     <p class="text-xs text-slate-400">Digite seu nome para consultar suas despesas.</p>
@@ -395,9 +414,7 @@
                             <h4 class="font-bold text-sm text-white">Solicitar aumento do Limite Black?</h4>
                             <p class="text-xs text-slate-400">Fale diretamente com o Junim no WhatsApp para reavaliar seu limite.</p>
                         </div>
-                        <!-- ========================================================================= -->
-                        <!-- ALTERE O SEU NUMERO DE WHATSAPP ABAIXO: substitua 5562999999999 pelo seu número -->
-                        <!-- ========================================================================= -->
+                        <!-- COLOQUE SEU NUMERO DE WHATSAPP ABAIXO: substitua 5562999999999 -->
                         <a 
                             href="https://wa.me/5562999999999?text=Ol%C3%A1%20Junim,%20gostaria%20de%20solicitar%20um%20aumento%20no%20meu%20limite!" 
                             target="_blank" 
@@ -500,6 +517,15 @@
 
     <!-- JAVASCRIPT LOGIC -->
     <script>
+        // REGISTRO DO SERVICE WORKER (PWA)
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(reg => console.log('Service Worker registrado com sucesso:', reg.scope))
+                    .catch(err => console.log('Falha ao registrar Service Worker:', err));
+            });
+        }
+
         const DEFAULT_SHEET_ID = "1HbSh6tGTNn0MV4Vgr3b6FDqvx_MjuJrlT30IXb_sBGE";
         let currentGoogleSheetId = localStorage.getItem('junim_sheet_id') || DEFAULT_SHEET_ID;
         let currentClient = null;
@@ -532,7 +558,7 @@
             if (window.lucide) window.lucide.createIcons();
         });
 
-        // PARSER DA ESTRUTURA DOS ITENS (Suporta %0A, :, >, valores com casas decimais)
+        // PARSER DA ESTRUTURA DOS ITENS
         function parseSingleItemLine(rawText) {
             if (!rawText) return null;
             let line = String(rawText).replace(/%0A/gi, '').replace(/[\r\n]/g, '').trim();
@@ -662,7 +688,6 @@
                 rows.forEach((r, idx) => {
                     if (!r.c) return;
 
-                    // Procura em todas as células da linha por conteúdo textual
                     let fullRowContent = "";
                     r.c.forEach(cellObj => {
                         if (cellObj) {
@@ -676,7 +701,6 @@
 
                     const parsedItem = parseSingleItemLine(fullRowContent);
 
-                    // LINHA 1 (idx === 0): Se for apenas o valor do saldo total
                     if (idx === 0) {
                         const lowerContent = fullRowContent.toLowerCase();
                         if (lowerContent.includes('total') || lowerContent.includes('saldo')) {
@@ -685,14 +709,12 @@
                             transactions.push(parsedItem);
                         }
                     } else {
-                        // LINHA 2 PARA BAIXO
                         if (parsedItem) {
                             transactions.push(parsedItem);
                         }
                     }
                 });
 
-                // Se não tinha um valor total na linha 1, calcula pela soma de cada item
                 if (explicitTotal === null) {
                     explicitTotal = transactions.reduce((acc, curr) => acc + curr.price, 0);
                 }
@@ -703,6 +725,7 @@
                     tier: "BLACK VIP",
                     cardNumber: "4829 •••• •••• 8842",
                     limitTotal: confInfo.limitTotal,
+                    dueDateDay: confInfo.dueDateDay,
                     dueDate: `Dia ${confInfo.dueDateDay} de cada mês`,
                     explicitTotal: explicitTotal,
                     transactions: transactions
@@ -715,7 +738,8 @@
                     tier: "BLACK VIP",
                     cardNumber: "4829 •••• •••• 8842",
                     limitTotal: confInfo.limitTotal,
-                    dueDate: `Dia ${confInfo.dueDateDay} de cada mês`,
+                    dueDateDay: confInfo.dueDateDay || "10",
+                    dueDate: `Dia ${confInfo.dueDateDay || 10} de cada mês`,
                     explicitTotal: 0,
                     transactions: []
                 };
@@ -732,7 +756,6 @@
             submitBtn.innerHTML = `<i data-lucide="refresh-cw" class="w-4 h-4 animate-spin"></i> Entrando...`;
             if (window.lucide) window.lucide.createIcons();
 
-            // 1. Valida nome na Aba "conf"
             const confInfo = await verifyAndFetchConfData(currentGoogleSheetId, name);
 
             if (!confInfo || !confInfo.found) {
@@ -744,7 +767,6 @@
                 return;
             }
 
-            // 2. Busca lançamentos da aba do cliente
             const clientData = await fetchClientTabData(currentGoogleSheetId, confInfo);
             currentClient = clientData;
 
@@ -788,25 +810,50 @@
             const limitAvail = Math.max(0, limitTotal - totalOwed);
             const limitPct = Math.min(100, ((totalOwed / limitTotal) * 100)).toFixed(1);
 
+            // Verificação do Vencimento
+            const currentDay = new Date().getDate();
+            const dueDayParsed = parseInt(currentClient.dueDateDay, 10) || 10;
+            const isOverdue = totalOwed > 0 && currentDay > dueDayParsed;
+
             document.getElementById('cardNameDisplay').innerText = currentClient.name;
             document.getElementById('cardNumberDisplay').innerText = currentClient.cardNumber;
             document.getElementById('cardTierBadge').innerText = currentClient.tier;
             document.getElementById('clubTierTitle').innerText = currentClient.tier;
 
             document.getElementById('totalOwedDisplay').innerText = `R$ ${totalOwed.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
-            document.getElementById('dueDateDisplay').innerText = currentClient.dueDate || 'Dia 10 de cada mês';
+            
+            const dueDisplay = document.getElementById('dueDateDisplay');
+            if (isOverdue) {
+                dueDisplay.className = "text-rose-400 font-bold";
+                dueDisplay.innerText = `⚠️ Vencida (Venceu dia ${dueDayParsed})`;
+            } else {
+                dueDisplay.className = "text-white font-medium";
+                dueDisplay.innerText = `Dia ${dueDayParsed} de cada mês`;
+            }
+
             document.getElementById('availLimitDisplay').innerText = `R$ ${limitAvail.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
             document.getElementById('totalLimitDisplay').innerText = `R$ ${limitTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
             document.getElementById('limitPctDisplay').innerText = `${limitPct}% Utilizado`;
             document.getElementById('limitProgressBar').style.width = `${limitPct}%`;
 
             const billTag = document.getElementById('billStatusTag');
-            if (totalOwed > 0) {
-                billTag.className = 'text-xs px-3 py-1 rounded-full font-bold border bg-amber-500/10 border-amber-500/30 text-amber-300';
-                billTag.innerText = 'Fatura Aberta';
-            } else {
+            const cardStatus = document.getElementById('cardStatusDisplay');
+
+            if (totalOwed === 0) {
                 billTag.className = 'text-xs px-3 py-1 rounded-full font-bold border bg-emerald-500/10 border-emerald-500/30 text-emerald-400';
                 billTag.innerText = 'Fatura Quitada';
+                cardStatus.className = 'font-mono text-xs text-cyan-400';
+                cardStatus.innerText = 'ATIVO';
+            } else if (isOverdue) {
+                billTag.className = 'text-xs px-3 py-1 rounded-full font-bold border bg-rose-500/10 border-rose-500/30 text-rose-400 animate-pulse';
+                billTag.innerText = 'Fatura Vencida';
+                cardStatus.className = 'font-mono text-xs text-rose-400 font-bold';
+                cardStatus.innerText = 'BLOQUEADO';
+            } else {
+                billTag.className = 'text-xs px-3 py-1 rounded-full font-bold border bg-amber-500/10 border-amber-500/30 text-amber-300';
+                billTag.innerText = 'Fatura Aberta';
+                cardStatus.className = 'font-mono text-xs text-cyan-400';
+                cardStatus.innerText = 'ATIVO';
             }
 
             renderRecentTransactions(currentClient.transactions);
