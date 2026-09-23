@@ -1,0 +1,21 @@
+{
+"short_name": "Barbearia_Black",
+"name": "Cartão Black Junim",
+"icons": [
+{
+"src": "logo.jpg?v=2",
+"type": "image/jpeg",
+"sizes": "192x192"
+},
+{
+"src": "logo.jpg?v=2",
+"type": "image/jpeg",
+"sizes": "512x512"
+}
+],
+"start_url": "./index.html",
+"background_color": "#0a081d",
+"theme_color": "#0a081d",
+"display": "standalone",
+"orientation": "portrait"
+}
