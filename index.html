@@ -401,10 +401,18 @@
                     <div class="space-y-3 pt-2">
                         <div class="bg-black/50 border border-white/10 p-4 rounded-2xl space-y-1">
                             <h4 class="font-bold text-xs text-white flex items-center gap-2">
-                                <i data-lucide="coffee" class="w-4 h-4 text-cyan-400"></i>
-                                Bar Liberado no Local
+                                <i data-lucide="sparkles" class="w-4 h-4 text-purple-400"></i>
+                                Parceria Urban Açaí
                             </h4>
-                            <p class="text-[11px] text-slate-400">1º Chopp ou Whisky por conta da casa em cada visita agendada.</p>
+                            <p class="text-[11px] text-slate-400">Compre seus produtos no Urban Açaí e inclua o valor acumulado diretamente na sua fatura do Cartão Junim Black.</p>
+                        </div>
+
+                        <div class="bg-black/50 border border-white/10 p-4 rounded-2xl space-y-1">
+                            <h4 class="font-bold text-xs text-white flex items-center gap-2">
+                                <i data-lucide="coffee" class="w-4 h-4 text-cyan-400"></i>
+                                Bebidas & Pomadas
+                            </h4>
+                            <p class="text-[11px] text-slate-400">Consuma bebidas, pomadas e produtos na barbearia e lance para pagar no final do mês.</p>
                         </div>
 
                         <div class="bg-black/50 border border-white/10 p-4 rounded-2xl space-y-1">
@@ -412,15 +420,7 @@
                                 <i data-lucide="shield-check" class="w-4 h-4 text-amber-400"></i>
                                 Fiado Digital Junim
                             </h4>
-                            <p class="text-[11px] text-slate-400">Consuma serviços e produtos e pague acumulado em até 30 dias.</p>
-                        </div>
-
-                        <div class="bg-black/50 border border-white/10 p-4 rounded-2xl space-y-1">
-                            <h4 class="font-bold text-xs text-white flex items-center gap-2">
-                                <i data-lucide="zap" class="w-4 h-4 text-purple-400"></i>
-                                Agendamento Prioritário
-                            </h4>
-                            <p class="text-[11px] text-slate-400">Garantia de horário nos finais de semana e feriados.</p>
+                            <p class="text-[11px] text-slate-400">Consuma serviços e conveniências acumulando na conta para acerto em até 30 dias.</p>
                         </div>
                     </div>
 
@@ -430,7 +430,7 @@
                             <p class="text-[11px] text-slate-400">Fale diretamente com o Junim no WhatsApp.</p>
                         </div>
                         <a 
-                            href="https://wa.me/5562999999999?text=Ol%C3%A1%20Junim,%20gostaria%20de%20solicitar%20um%20aumento%20no%20meu%20limite!" 
+                            href="https://wa.me/5562984099756?text=Ol%C3%A1%20Junim,%20gostaria%20de%20solicitar%20um%20aumento%20no%20meu%20limite!" 
                             target="_blank" 
                             rel="noopener noreferrer"
                             class="bg-amber-400 active:scale-95 text-black font-bold text-xs py-3 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-amber-400/20 w-full"
@@ -471,7 +471,7 @@
                 <div class="text-center py-3 bg-black/40 rounded-2xl border border-white/5">
                     <p class="text-[10px] text-slate-400 uppercase tracking-wider">Valor Total da Fatura</p>
                     <p id="modalOwedAmount" class="text-2xl font-black font-mono text-cyan-300 mt-0.5">R$ 0,00</p>
-                    <p class="text-[10px] text-slate-500 mt-0.5">Beneficiário: Barbearia Junim LTDA</p>
+                    <p class="text-[10px] text-slate-500 mt-0.5">Beneficiário: Jose Elvecio Lopes Junior</p>
                 </div>
 
                 <button 
@@ -539,6 +539,10 @@
         }
 
         const DEFAULT_SHEET_ID = "1HbSh6tGTNn0MV4Vgr3b6FDqvx_MjuJrlT30IXb_sBGE";
+        
+        // CHAVE PIX OFICIAL (PAYLOAD COPIA E COLA COMPLETO)
+        const OFFICIAL_PIX_PAYLOAD = "00020126360014br.gov.bcb.pix0114+55629810210395204000053039865802BR5925JOSE ELVECIO LOPES JUNIOR6009Sao Paulo62290525REC6AB40A108B50E251342927630448EB";
+
         let currentGoogleSheetId = localStorage.getItem('junim_sheet_id') || DEFAULT_SHEET_ID;
         let currentClient = null;
 
@@ -671,7 +675,7 @@
                             dueVal = String(r.c[2].v || r.c[2].f || '').trim();
                         }
 
-                        // LEITURA MINUCIOSA DA COLUNA D (PAGAMENTO / VERDE OU VERMELHO)
+                        // LEITURA DA COLUNA D (PAGAMENTO / VERDE OU VERMELHO)
                         let isPaidInConf = false;
                         if (r.c[3]) {
                             const rawColD = String(r.c[3].v || r.c[3].f || '').toLowerCase().trim();
@@ -743,7 +747,6 @@
                     }
                 });
 
-                // Se na aba conf a Coluna D estiver VERDE (Pago)
                 if (confInfo.isPaidInConf) {
                     explicitTotal = 0;
                 } else if (explicitTotal === null) {
@@ -857,7 +860,6 @@
             const currentDay = new Date().getDate();
             const dueDayParsed = parseInt(currentClient.dueDateDay, 10) || 10;
             
-            // LÓGICA DE VENCIMENTO BASEADA NA COLUNA D (VERDE / VERMELHO)
             const isPaidInConf = currentClient.isPaidInConf || totalOwed === 0;
             const isOverdue = !isPaidInConf && currentDay > dueDayParsed;
 
@@ -975,8 +977,7 @@
 
             document.getElementById('modalOwedAmount').innerText = `R$ ${totalOwed.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
             
-            const pixCode = `00020126580014BR.GOV.BCB.PIX0136barbeariajunim-${currentClient.name.toLowerCase().replace(/\s+/g,'')}-fatura5204000053039865405${totalOwed.toFixed(2)}5802BR5920BARBEARIA JUNIM LTDA6009GOIANESIA62070503***6304D81A`;
-            const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(pixCode)}`;
+            const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(OFFICIAL_PIX_PAYLOAD)}`;
             document.getElementById('pixQrCodeImage').src = qrUrl;
 
             document.getElementById('payModalStep1').classList.remove('hidden');
@@ -996,11 +997,8 @@
         }
 
         function copyPixKey() {
-            const totalOwed = currentClient.explicitTotal !== null ? currentClient.explicitTotal : 0;
-            const pixKey = `00020126580014BR.GOV.BCB.PIX0136barbeariajunim-${currentClient.name.toLowerCase().replace(/\s+/g,'')}-fatura5204000053039865405${totalOwed.toFixed(2)}5802BR5920BARBEARIA JUNIM LTDA6009GOIANESIA62070503***6304D81A`;
-
             const el = document.createElement('textarea');
-            el.value = pixKey;
+            el.value = OFFICIAL_PIX_PAYLOAD;
             document.body.appendChild(el);
             el.select();
             document.execCommand('copy');
