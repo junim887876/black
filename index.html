@@ -23,7 +23,7 @@
           appId: "22986668-6bea-4c4d-b152-b8ded798652d",
           safari_web_id: "web.onesignal.auto.22986668-6bea-4c4d-b152-b8ded798652d",
           notifyButton: {
-            enable: false, // Desativado botão flutuante padrão
+            enable: false,
           },
           allowLocalhostAsSecureOrigin: true
         });
@@ -560,15 +560,15 @@
             }, 3000);
         }
 
-        // VINCULA O CLIENTE AO ONESIGNAL
+        // VINCULA O CLIENTE AO ONESIGNAL (CORRIGIDO PARA LIMPAR ANTERIORES)
         async function setupOneSignalUser(clientName) {
             const cleanName = clientName.trim().toLowerCase();
             window.OneSignalDeferred = window.OneSignalDeferred || [];
             window.OneSignalDeferred.push(async function(OneSignal) {
                 try {
-                    await OneSignal.login(cleanName);
+                    await OneSignal.logout(); // Limpa vínculo anterior no dispositivo
+                    await OneSignal.login(cleanName); // Associa exclusivamente ao cliente atual
                     
-                    // Exibe aviso para ativar notificações se ainda não estiver ativado
                     if (Notification.permission !== "granted") {
                         document.getElementById('notifPromptBar').classList.remove('hidden');
                     }
@@ -824,7 +824,7 @@
 
             localStorage.setItem('junim_auto_login_user', clientData.name);
 
-            // Registra / Vincula no OneSignal
+            // Registra / Vincula no OneSignal exclusivamente para o cliente logado
             setupOneSignalUser(clientData.name);
 
             if (submitBtn) {
@@ -901,7 +901,7 @@
             }
 
             document.getElementById('availLimitDisplay').innerText = `R$ ${limitAvail.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
-            document.getElementById('totalLimitDisplay').innerText = `R$ ${totalLimitTotal = limitTotal}.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+            document.getElementById('totalLimitDisplay').innerText = `R$ ${limitTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
             document.getElementById('limitPctDisplay').innerText = `${limitPct}% Utilizado`;
             document.getElementById('limitProgressBar').style.width = `${limitPct}%`;
 
@@ -1006,6 +1006,7 @@
 
         function goToPayStep2() {
             document.getElementById('payModalStep1').classList.add('hidden');
+            document.getElementById('payModalStep2').innerHTML = document.getElementById('payModalStep2').innerHTML;
             document.getElementById('payModalStep2').classList.remove('hidden');
         }
 
