@@ -2,11 +2,9 @@
 <html lang="pt-BR" class="dark">
 <head>
     <meta charset="UTF-8">
-    <!-- Viewport estrito para mobile nativo, sem zoom e respeitando safe-area / island -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Barbearia Junim • Fatura Digital</title>
+    <title>Barbearia Junim F</title>
 
-    <!-- PWA Web App Manifest & Configurações de Standalone iOS/Android -->
     <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#050608">
     <meta name="mobile-web-app-capable" content="yes">
@@ -15,6 +13,22 @@
     <meta name="apple-mobile-web-app-title" content="Junim Fatura">
     <link rel="icon" type="image/png" href="./icon.png">
     <link rel="apple-touch-icon" href="./icon.png">
+
+    <!-- OneSignal SDK v16 -->
+    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+    <script>
+      window.OneSignalDeferred = window.OneSignalDeferred || [];
+      OneSignalDeferred.push(async function(OneSignal) {
+        await OneSignal.init({
+          appId: "22986668-6bea-4c4d-b152-b8ded798652d",
+          safari_web_id: "web.onesignal.auto.22986668-6bea-4c4d-b152-b8ded798652d",
+          notifyButton: {
+            enable: false, // Desativado botão flutuante padrão
+          },
+          allowLocalhostAsSecureOrigin: true
+        });
+      });
+    </script>
 
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -50,7 +64,6 @@
     </script>
 
     <style>
-        /* Trava nativa contra zoom, arrasto horizontal e seleção de elementos */
         html, body {
             overflow-x: hidden !important;
             overscroll-behavior-x: none !important;
@@ -67,7 +80,6 @@
             background-color: #050608;
             color: #E2E8F0;
             font-family: 'Inter', sans-serif;
-            /* Suporte a Notch e Dynamic Island do iPhone */
             padding-top: env(safe-area-inset-top, 0px);
             padding-bottom: env(safe-area-inset-bottom, 0px);
             padding-left: env(safe-area-inset-left, 0px);
@@ -90,7 +102,7 @@
             background: radial-gradient(circle at 20% 20%, #2a2d3d 0%, #0d0f17 50%, #050609 100%);
             position: relative;
             box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.8), 0 0 25px rgba(0, 242, 254, 0.1);
-            touch-action: none; /* Impede deslize do cartão */
+            touch-action: none;
         }
 
         .black-card-bg::before {
@@ -160,7 +172,6 @@
         <!-- HEADER / BRANDING BAR -->
         <header class="flex items-center justify-between gap-3 py-3 mb-4 border-b border-white/10">
             <div class="flex items-center gap-3" onclick="showLoginScreen()">
-                <!-- LOGOTIPO DA BARBEARIA JUNIM -->
                 <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 via-cyan-400 to-indigo-600 p-[1.5px] flex items-center justify-center shadow-lg shadow-cyan-500/10 overflow-hidden shrink-0">
                     <div class="w-full h-full bg-black rounded-[14px] flex items-center justify-center overflow-hidden">
                         <img 
@@ -180,7 +191,6 @@
                 </div>
             </div>
 
-            <!-- Botão Fixo de Logout -->
             <div id="userHeaderBadge" class="hidden items-center gap-2">
                 <button onclick="logoutClient()" class="bg-rose-500/10 border border-rose-500/30 active:scale-95 text-rose-300 text-xs px-3 py-1.5 rounded-xl flex items-center gap-1.5 transition-all font-semibold">
                     <i data-lucide="log-out" class="w-3.5 h-3.5 text-rose-400"></i>
@@ -239,6 +249,17 @@
         <!-- SCREEN 2: DASHBOARD -->
         <div id="dashboardScreen" class="hidden space-y-5 animate-fade-in flex-1 overflow-x-hidden">
 
+            <!-- Botão de Ativar Notificações -->
+            <div id="notifPromptBar" class="hidden bg-cyan-500/10 border border-cyan-400/30 rounded-2xl p-3 flex items-center justify-between gap-3">
+                <div class="flex items-center gap-2 min-w-0">
+                    <i data-lucide="bell" class="w-4 h-4 text-cyan-400 shrink-0"></i>
+                    <p class="text-[11px] text-cyan-200 truncate">Ative as notificações para acompanhar lançamentos.</p>
+                </div>
+                <button onclick="requestNotificationPermission()" class="bg-cyan-400 text-black font-bold text-[10px] px-3 py-1.5 rounded-xl shrink-0">
+                    Ativar
+                </button>
+            </div>
+
             <!-- Navigation Tabs -->
             <div class="flex items-center justify-between bg-black/50 border border-white/10 rounded-2xl p-1 backdrop-blur-xl">
                 <button 
@@ -262,11 +283,9 @@
             <!-- TAB CONTENT 1: FATURA & CARTÃO BLACK -->
             <div id="tabContent-fatura" class="space-y-5">
                 
-                <!-- Card Display (Fixo, sem deslize) -->
                 <div class="flex justify-center select-none">
                     <div class="w-full aspect-[1.586/1] black-card-bg rounded-3xl p-5 flex flex-col justify-between text-white border border-white/20 relative group">
                         
-                        <!-- Card Top -->
                         <div class="flex justify-between items-start">
                             <div>
                                 <div class="flex items-center gap-1.5">
@@ -283,13 +302,11 @@
                             </div>
                         </div>
 
-                        <!-- Card Middle -->
                         <div class="flex justify-between items-center my-1">
                             <i data-lucide="wifi" class="w-5 h-5 text-slate-400 transform rotate-90"></i>
                             <span id="cardTierBadge" class="text-[10px] font-mono tracking-widest text-slate-400 bg-white/5 px-2 py-0.5 rounded border border-white/10">BLACK VIP</span>
                         </div>
 
-                        <!-- Card Bottom -->
                         <div class="space-y-2">
                             <div id="cardNumberDisplay" class="font-mono text-xs sm:text-sm tracking-[0.2em] text-slate-200">
                                 4829 •••• •••• 9921
@@ -308,10 +325,7 @@
                     </div>
                 </div>
 
-                <!-- Metrics Tiles -->
                 <div class="space-y-4">
-                    
-                    <!-- Fatura Atual Tile -->
                     <div class="glass-panel rounded-3xl p-5 border-l-4 border-l-cyan-400 relative overflow-hidden">
                         <div class="flex justify-between items-start mb-1">
                             <div>
@@ -343,7 +357,6 @@
                         </button>
                     </div>
 
-                    <!-- Credit Limit Meter Tile -->
                     <div class="glass-panel rounded-3xl p-5 space-y-3">
                         <div class="flex justify-between items-center text-[11px] text-slate-400 uppercase tracking-wider font-semibold">
                             <span>Uso do Limite de Crédito</span>
@@ -373,10 +386,8 @@
                             </div>
                         </div>
                     </div>
-
                 </div>
 
-                <!-- Lista de Consumos/Itens -->
                 <div class="glass-panel rounded-3xl p-5 space-y-3">
                     <div class="flex justify-between items-center">
                         <div>
@@ -388,9 +399,7 @@
                         </div>
                     </div>
 
-                    <div id="recentTransactionsList" class="divide-y divide-white/5">
-                        <!-- Populated dynamically via JS -->
-                    </div>
+                    <div id="recentTransactionsList" class="divide-y divide-white/5"></div>
                 </div>
 
             </div>
@@ -454,7 +463,6 @@
 
         </div>
 
-        <!-- FOOTER CREDITS -->
         <footer class="pt-6 text-center text-[10px] text-slate-600 space-y-1">
             <p>© 2026 Barbearia Junim • Fatura Digital Nativa</p>
         </footer>
@@ -464,7 +472,6 @@
     <!-- MODAL PIX -->
     <div id="payModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl animate-fade-in">
         <div class="glass-panel w-full max-w-sm rounded-3xl p-6 space-y-5 border border-white/20 shadow-2xl relative">
-            
             <div class="flex justify-between items-center border-b border-white/10 pb-3">
                 <div class="flex items-center gap-2">
                     <div class="w-7 h-7 rounded-lg bg-cyan-500/20 flex items-center justify-center text-cyan-400">
@@ -517,7 +524,6 @@
 
     <!-- JAVASCRIPT LOGIC -->
     <script>
-        // REGISTRO SERVICE WORKER (PWA NATIVO)
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('./sw.js').catch(() => {});
@@ -525,8 +531,6 @@
         }
 
         const DEFAULT_SHEET_ID = "1HbSh6tGTNn0MV4Vgr3b6FDqvx_MjuJrlT30IXb_sBGE";
-        
-        // CHAVE PIX OFICIAL (PAYLOAD COPIA E COLA COMPLETO)
         const OFFICIAL_PIX_PAYLOAD = "00020126360014br.gov.bcb.pix0114+55629810210395204000053039865802BR5925JOSE ELVECIO LOPES JUNIOR6009Sao Paulo62290525REC6AB40A108B50E251342927630448EB";
 
         let currentGoogleSheetId = localStorage.getItem('junim_sheet_id') || DEFAULT_SHEET_ID;
@@ -556,7 +560,32 @@
             }, 3000);
         }
 
-        // AUTO-LOGIN AO ABRIR O APP
+        // VINCULA O CLIENTE AO ONESIGNAL
+        async function setupOneSignalUser(clientName) {
+            const cleanName = clientName.trim().toLowerCase();
+            window.OneSignalDeferred = window.OneSignalDeferred || [];
+            window.OneSignalDeferred.push(async function(OneSignal) {
+                try {
+                    await OneSignal.login(cleanName);
+                    
+                    // Exibe aviso para ativar notificações se ainda não estiver ativado
+                    if (Notification.permission !== "granted") {
+                        document.getElementById('notifPromptBar').classList.remove('hidden');
+                    }
+                } catch(e) {
+                    console.error("Erro OneSignal Login:", e);
+                }
+            });
+        }
+
+        function requestNotificationPermission() {
+            window.OneSignalDeferred = window.OneSignalDeferred || [];
+            window.OneSignalDeferred.push(async function(OneSignal) {
+                await OneSignal.Notifications.requestPermission();
+                document.getElementById('notifPromptBar').classList.add('hidden');
+            });
+        }
+
         window.addEventListener('DOMContentLoaded', async () => {
             if (window.lucide) window.lucide.createIcons();
             
@@ -567,7 +596,6 @@
             }
         });
 
-        // PARSER DA ESTRUTURA DOS ITENS
         function parseSingleItemLine(rawText) {
             if (!rawText) return null;
             let line = String(rawText).replace(/%0A/gi, '').replace(/[\r\n]/g, '').trim();
@@ -627,7 +655,6 @@
             };
         }
 
-        // LEITURA MINUCIOSA DA ABA conf
         async function verifyAndFetchConfData(sheetId, clientName) {
             try {
                 const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&sheet=conf`;
@@ -640,7 +667,6 @@
 
                 const parsed = JSON.parse(jsonMatch[1]);
                 const rows = parsed.table.rows;
-
                 const targetName = clientName.trim().toLowerCase();
 
                 for (let r of rows) {
@@ -685,7 +711,6 @@
             }
         }
 
-        // LEITURA DA ABA DO CLIENTE
         async function fetchClientTabData(sheetId, confInfo) {
             try {
                 const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(confInfo.officialName)}`;
@@ -799,6 +824,9 @@
 
             localStorage.setItem('junim_auto_login_user', clientData.name);
 
+            // Registra / Vincula no OneSignal
+            setupOneSignalUser(clientData.name);
+
             if (submitBtn) {
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = `<span>Login</span><i data-lucide="arrow-right" class="w-4 h-4"></i>`;
@@ -816,6 +844,11 @@
         }
 
         function logoutClient() {
+            if (window.OneSignalDeferred) {
+                window.OneSignalDeferred.push(function(OneSignal) {
+                    OneSignal.logout();
+                });
+            }
             currentClient = null;
             localStorage.removeItem('junim_auto_login_user');
             document.getElementById('dashboardScreen').classList.add('hidden');
@@ -868,7 +901,7 @@
             }
 
             document.getElementById('availLimitDisplay').innerText = `R$ ${limitAvail.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
-            document.getElementById('totalLimitDisplay').innerText = `R$ ${limitTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+            document.getElementById('totalLimitDisplay').innerText = `R$ ${totalLimitTotal = limitTotal}.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
             document.getElementById('limitPctDisplay').innerText = `${limitPct}% Utilizado`;
             document.getElementById('limitProgressBar').style.width = `${limitPct}%`;
 
